@@ -79,11 +79,13 @@ def load_models(model_type: str):
 
 
 @torch.inference_mode()
-def generate_image(pipe: HiDreamImagePipeline, model_type: str, prompt: str, resolution: tuple[int, int], seed: int):
+def generate_image(pipe: HiDreamImagePipeline, model_type: str, prompt: str, resolution: tuple[int, int], seed: int, num_steps=None):
     # Get configuration for current model
     config = MODEL_CONFIGS[model_type]
     guidance_scale = config["guidance_scale"]
-    num_inference_steps = config["num_inference_steps"]
+    
+    # Use provided num_steps if given, otherwise use default from config
+    num_inference_steps = num_steps if num_steps is not None else config["num_inference_steps"]
     
     # Parse resolution
     width, height = resolution

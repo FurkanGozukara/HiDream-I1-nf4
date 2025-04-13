@@ -5,3 +5,10 @@ transformers>=4.47.1
 einops>=0.7.0
 accelerate>=1.2.1
 sentencepiece
+gradio>=5.24.0
+optimum
+logbar>=0.0.4
+hf-transfer>=0.1.9
+huggingface_hub
+auto-gptq
+bitsandbytes

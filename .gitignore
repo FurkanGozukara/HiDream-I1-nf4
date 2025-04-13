@@ -7,3 +7,4 @@ tmp
 *.txt
 *.egg-info
 dist/
+venv
