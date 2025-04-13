@@ -79,8 +79,11 @@ def gen_img_helper(model, prompt, res, seed, num_steps, num_images):
         if seed != -1:
             seed = used_seed + 1
 
-    # Return only the first image to display
-    return output_images[0], seeds_used[0]
+    # Return single image or gallery depending on number of images
+    if num_images == 1:
+        return output_images[0], gr.update(visible=True), gr.update(visible=False), seeds_used[0]
+    else:
+        return None, gr.update(visible=False), gr.update(visible=True, value=output_images), seeds_used[0]
 
 
 if __name__ == "__main__":
@@ -154,7 +157,8 @@ if __name__ == "__main__":
                 seed_used = gr.Number(label="Seed Used", interactive=False)
                 
             with gr.Column():
-                output_image = gr.Image(label="Generated Image", type="pil", height=512)
+                output_image = gr.Image(label="Generated Image", type="pil", height=512, visible=True)
+                output_gallery = gr.Gallery(label="Generated Images", visible=False, elem_id="gallery", columns=3, rows=3, height=750)
                 open_folder_btn = gr.Button("Open Outputs Folder")
         
         # Update steps when model changes
@@ -167,7 +171,7 @@ if __name__ == "__main__":
         generate_btn.click(
             fn=gen_img_helper,
             inputs=[model_type, prompt, resolution, seed, num_steps, num_images],
-            outputs=[output_image, seed_used]
+            outputs=[output_image, output_image, output_gallery, seed_used]
         )
         
         open_folder_btn.click(
