@@ -8,7 +8,15 @@ from .schedulers.flash_flow_match import FlashFlowMatchEulerDiscreteScheduler
 
 
 MODEL_PREFIX = "azaneko"
-LLAMA_MODEL_NAME = "hugging-quants/Meta-Llama-3.1-8B-Instruct-GPTQ-INT4"
+
+# Available LLaMA models
+LLAMA_MODELS = {
+    "int4": "hugging-quants/Meta-Llama-3.1-8B-Instruct-GPTQ-INT4",
+    "int8": "clowman/Llama-3.1-8B-Instruct-GPTQ-Int8"
+}
+
+# Default model
+LLAMA_MODEL_NAME = LLAMA_MODELS["int4"]
 
 
 # Model configurations
@@ -41,14 +49,17 @@ def log_vram(msg: str):
     print(f"{msg} (used {torch.cuda.memory_allocated() / 1024**2:.2f} MB VRAM)\n")
 
 
-def load_models(model_type: str):
+def load_models(model_type: str, llama_model_key: str = "int4"):
     config = MODEL_CONFIGS[model_type]
     
-    tokenizer_4 = PreTrainedTokenizerFast.from_pretrained(LLAMA_MODEL_NAME)
+    # Get the appropriate LLaMA model
+    current_llama_model = LLAMA_MODELS[llama_model_key]
+    
+    tokenizer_4 = PreTrainedTokenizerFast.from_pretrained(current_llama_model)
     log_vram("✅ Tokenizer loaded!")
     
     text_encoder_4 = LlamaForCausalLM.from_pretrained(
-        LLAMA_MODEL_NAME,
+        current_llama_model,
         output_hidden_states=True,
         output_attentions=True,
         return_dict_in_generate=True,

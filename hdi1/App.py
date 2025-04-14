@@ -51,21 +51,22 @@ def update_custom_resolution_values(resolution_choice):
     width, height = parse_resolution(resolution_choice)
     return gr.update(value=width), gr.update(value=height)
 
-def gen_img_helper(model, prompt, res, custom_width, custom_height, seed, num_steps, num_images):
-    global pipe, current_model
+def gen_img_helper(model, llama_model, prompt, res, custom_width, custom_height, seed, num_steps, num_images):
+    global pipe, current_model, current_llama_model
     output_images = []
     seeds_used = []
     output_dir = ensure_output_dir()
 
-    # 1. Check if the model matches loaded model, load the model if not
-    if model != current_model:
+    # Check if the model or LLaMA model has changed
+    if model != current_model or llama_model != current_llama_model:
         print(f"Unloading model {current_model}...")
         del pipe
         torch.cuda.empty_cache()
         
-        print(f"Loading model {model}...")
-        pipe, _ = load_models(model)
+        print(f"Loading model {model} with LLaMA model {llama_model}...")
+        pipe, _ = load_models(model, llama_model)
         current_model = model
+        current_llama_model = llama_model
         print("Model loaded successfully!")
 
     # 2. Generate images in batch
@@ -109,7 +110,8 @@ if __name__ == "__main__":
     # Initialize with default model
     print("Loading default model (fast)...")
     current_model = "fast"
-    pipe, _ = load_models(current_model)
+    current_llama_model = "int4"
+    pipe, _ = load_models(current_model, current_llama_model)
     print("Model loaded successfully!")
 
     # Ensure outputs directory exists
@@ -117,17 +119,26 @@ if __name__ == "__main__":
 
     # Create Gradio interface
     with gr.Blocks(title="HiDream-I1-nf4 Dashboard") as demo:
-        gr.Markdown("# HiDream NF4 SECourses Improved App V2 : https://www.patreon.com/posts/126589906/")
+        gr.Markdown("# HiDream NF4 SECourses Improved App V3 : https://www.patreon.com/posts/126589906/")
         
         with gr.Row():           
             with gr.Column():
                 generate_btn = gr.Button("Generate Image", variant="primary")
-                model_type = gr.Radio(
-                    choices=list(MODEL_CONFIGS.keys()),
-                    value="fast",
-                    label="Model Type",
-                    info="Select model variant"
-                )
+                
+                with gr.Row():
+                    model_type = gr.Radio(
+                        choices=list(MODEL_CONFIGS.keys()),
+                        value="fast",
+                        label="Model Type",
+                        info="Select model variant"
+                    )
+                    
+                    llama_model = gr.Radio(
+                        choices=["int4", "int8"],
+                        value="int4",
+                        label="LLaMA Model",
+                        info="Select which LLaMA model to use: INT4 or INT8 (uses more VRAM)"
+                    )
                 
                 prompt = gr.Textbox(
                     label="Prompt", 
@@ -211,7 +222,7 @@ if __name__ == "__main__":
         
         generate_btn.click(
             fn=gen_img_helper,
-            inputs=[model_type, prompt, resolution, custom_width, custom_height, seed, num_steps, num_images],
+            inputs=[model_type, llama_model, prompt, resolution, custom_width, custom_height, seed, num_steps, num_images],
             outputs=[output_image, output_image, output_gallery, seed_used]
         )
         

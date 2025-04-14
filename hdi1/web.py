@@ -20,18 +20,19 @@ def parse_resolution(resolution_str):
     return tuple(map(int, resolution_str.split("(")[0].strip().split(" × ")))
 
 
-def gen_img_helper(model, prompt, res, seed):
-    global pipe, current_model
+def gen_img_helper(model, llama_model, prompt, res, seed):
+    global pipe, current_model, current_llama_model
 
-    # 1. Check if the model matches loaded model, load the model if not
-    if model != current_model:
+    # Check if the model or LLaMA model has changed
+    if model != current_model or llama_model != current_llama_model:
         print(f"Unloading model {current_model}...")
         del pipe
         torch.cuda.empty_cache()
         
-        print(f"Loading model {model}...")
-        pipe, _ = load_models(model)
+        print(f"Loading model {model} with LLaMA model {llama_model}...")
+        pipe, _ = load_models(model, llama_model)
         current_model = model
+        current_llama_model = llama_model
         print("Model loaded successfully!")
 
     # 2. Generate image
@@ -45,7 +46,8 @@ if __name__ == "__main__":
     # Initialize with default model
     print("Loading default model (fast)...")
     current_model = "fast"
-    pipe, _ = load_models(current_model)
+    current_llama_model = "int4"
+    pipe, _ = load_models(current_model, current_llama_model)
     print("Model loaded successfully!")
 
     # Create Gradio interface
@@ -54,12 +56,20 @@ if __name__ == "__main__":
         
         with gr.Row():
             with gr.Column():
-                model_type = gr.Radio(
-                    choices=list(MODEL_CONFIGS.keys()),
-                    value="fast",
-                    label="Model Type",
-                    info="Select model variant"
-                )
+                with gr.Row():
+                    model_type = gr.Radio(
+                        choices=list(MODEL_CONFIGS.keys()),
+                        value="fast",
+                        label="Model Type",
+                        info="Select model variant"
+                    )
+                    
+                    llama_model = gr.Radio(
+                        choices=["int4", "int8"],
+                        value="int4",
+                        label="LLaMA Model",
+                        info="Select which LLaMA model to use: INT4 (hugging-quants) or INT8 (clowman)"
+                    )
                 
                 prompt = gr.Textbox(
                     label="Prompt", 
@@ -88,7 +98,7 @@ if __name__ == "__main__":
         
         generate_btn.click(
             fn=gen_img_helper,
-            inputs=[model_type, prompt, resolution, seed],
+            inputs=[model_type, llama_model, prompt, resolution, seed],
             outputs=[output_image, seed_used]
         )
 

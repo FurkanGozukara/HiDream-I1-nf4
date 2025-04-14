@@ -16,6 +16,10 @@ if __name__ == "__main__":
                         help="Model to use",
                         choices=["dev", "full", "fast"])
     
+    parser.add_argument("-lm", "--llama-model", type=str, default="int4",
+                        help="LLaMA model to use",
+                        choices=["int4", "int8"])
+    
     parser.add_argument("-s", "--seed", type=int, default=-1, 
                         help="Seed for generation")
     
@@ -27,10 +31,11 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     model_type = args.model
+    llama_model = args.llama_model
     
     # Initialize with default model
-    print(f"Loading model {model_type}...")
-    pipe, _ = load_models(model_type)
+    print(f"Loading model {model_type} with LLaMA model {llama_model}...")
+    pipe, _ = load_models(model_type, llama_model)
     print("Model loaded successfully!")
     
     st = time.time()
