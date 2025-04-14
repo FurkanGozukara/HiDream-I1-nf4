@@ -25,6 +25,10 @@ RESOLUTION_OPTIONS = [
 def parse_resolution(resolution_str):
     return tuple(map(int, resolution_str.split("(")[0].strip().split(" × ")))
 
+# Ensure dimensions are divisible by 32
+def ensure_divisible_by_32(value):
+    return max(32, value - (value % 32))
+
 # Create outputs directory if it doesn't exist
 def ensure_output_dir():
     output_dir = os.path.join(os.getcwd(), "outputs")
@@ -43,7 +47,11 @@ def open_outputs_folder():
 def update_steps(model):
     return MODEL_CONFIGS[model]["num_inference_steps"]
 
-def gen_img_helper(model, prompt, res, seed, num_steps, num_images):
+def update_custom_resolution_values(resolution_choice):
+    width, height = parse_resolution(resolution_choice)
+    return gr.update(value=width), gr.update(value=height)
+
+def gen_img_helper(model, prompt, res, custom_width, custom_height, seed, num_steps, num_images):
     global pipe, current_model
     output_images = []
     seeds_used = []
@@ -61,7 +69,11 @@ def gen_img_helper(model, prompt, res, seed, num_steps, num_images):
         print("Model loaded successfully!")
 
     # 2. Generate images in batch
-    res = parse_resolution(res)
+    # Always use custom dimensions
+    width = ensure_divisible_by_32(custom_width)
+    height = ensure_divisible_by_32(custom_height)
+    res = (width, height)
+        
     for i in range(num_images):
         image, used_seed = generate_image(pipe, model, prompt, res, seed, num_steps)
         
@@ -105,10 +117,11 @@ if __name__ == "__main__":
 
     # Create Gradio interface
     with gr.Blocks(title="HiDream-I1-nf4 Dashboard") as demo:
-        gr.Markdown("# HiDream NF4 SECourses Improved App V1 : https://www.patreon.com/posts/126589906/")
+        gr.Markdown("# HiDream NF4 SECourses Improved App V2 : https://www.patreon.com/posts/126589906/")
         
-        with gr.Row():
+        with gr.Row():           
             with gr.Column():
+                generate_btn = gr.Button("Generate Image", variant="primary")
                 model_type = gr.Radio(
                     choices=list(MODEL_CONFIGS.keys()),
                     value="fast",
@@ -125,9 +138,29 @@ if __name__ == "__main__":
                 resolution = gr.Radio(
                     choices=RESOLUTION_OPTIONS,
                     value=RESOLUTION_OPTIONS[0],
-                    label="Resolution",
-                    info="Select image resolution"
+                    label="Preset Resolutions",
+                    info="Select a preset resolution to update sliders below"
                 )
+                
+                with gr.Group() as custom_resolution_group:
+                    gr.Markdown("### Custom Resolution")
+                    with gr.Row():
+                        custom_width = gr.Slider(
+                            minimum=32,
+                            maximum=2048,
+                            value=1024,
+                            step=32,
+                            label="Width",
+                            info="Must be divisible by 32"
+                        )
+                        custom_height = gr.Slider(
+                            minimum=32,
+                            maximum=2048,
+                            value=1024,
+                            step=32,
+                            label="Height",
+                            info="Must be divisible by 32"
+                        )
                 
                 seed = gr.Number(
                     label="Seed (use -1 for random)", 
@@ -153,7 +186,7 @@ if __name__ == "__main__":
                     info="Generate multiple images at once"
                 )
                 
-                generate_btn = gr.Button("Generate Image")
+                
                 seed_used = gr.Number(label="Seed Used", interactive=False)
                 
             with gr.Column():
@@ -168,9 +201,16 @@ if __name__ == "__main__":
             outputs=[num_steps]
         )
         
+        # Update custom resolution values when resolution selection changes
+        resolution.change(
+            fn=update_custom_resolution_values,
+            inputs=[resolution],
+            outputs=[custom_width, custom_height]
+        )
+        
         generate_btn.click(
             fn=gen_img_helper,
-            inputs=[model_type, prompt, resolution, seed, num_steps, num_images],
+            inputs=[model_type, prompt, resolution, custom_width, custom_height, seed, num_steps, num_images],
             outputs=[output_image, output_image, output_gallery, seed_used]
         )
         
