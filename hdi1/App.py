@@ -162,32 +162,33 @@ if __name__ == "__main__":
                             info="Must be divisible by 32"
                         )
                 
-                seed = gr.Number(
-                    label="Seed (use -1 for random)", 
-                    value=-1, 
-                    precision=0
-                )
+                with gr.Row():
+                    num_steps = gr.Slider(
+                        minimum=1,
+                        maximum=100,
+                        value=MODEL_CONFIGS["fast"]["num_inference_steps"],
+                        step=1,
+                        label="Number of Steps",
+                        info="More steps = higher quality but slower"
+                    )
+                    
+                    num_images = gr.Slider(
+                        minimum=1,
+                        maximum=1000,
+                        value=1,
+                        step=1,
+                        label="Number of Images",
+                        info="Generate multiple images at once"
+                    )
                 
-                num_steps = gr.Slider(
-                    minimum=1,
-                    maximum=100,
-                    value=MODEL_CONFIGS["fast"]["num_inference_steps"],
-                    step=1,
-                    label="Number of Steps",
-                    info="More steps = higher quality but slower"
-                )
-                
-                num_images = gr.Slider(
-                    minimum=1,
-                    maximum=1000,
-                    value=1,
-                    step=1,
-                    label="Number of Images",
-                    info="Generate multiple images at once"
-                )
-                
-                
-                seed_used = gr.Number(label="Seed Used", interactive=False)
+                with gr.Row():
+                    seed = gr.Number(
+                        label="Seed (use -1 for random)", 
+                        value=-1, 
+                        precision=0
+                    )
+                    
+                    seed_used = gr.Number(label="Seed Used", interactive=False)
                 
             with gr.Column():
                 output_image = gr.Image(label="Generated Image", type="pil", height=512, visible=True)
